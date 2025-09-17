@@ -82,6 +82,37 @@ RSpec.describe ArgumentParser::Parser do
       expect { parser.parse!(argv) }.to raise_error(ArgumentParser::InvalidArgument, /invalid argument: close/i)
     end
 
+    context "when pattern responds to #include?" do
+      it "ensures value is included in the pattern" do
+        parser = ArgumentParser::Parser.new([
+          ArgumentParser::Schema::Rule.new(:required, :env, {pattern: %w[dev staging prod]})
+        ])
+
+        argv = %w[dev]
+        expect(parser.parse!(argv)).to eq(env: "dev")
+
+        argv = %w[qa]
+        expect { parser.parse!(argv) }.to raise_error(ArgumentParser::InvalidArgument, /invalid argument: qa/i)
+      end
+
+      context "and responds to #key?" do
+        it "maps input values to expected values" do
+          parser = ArgumentParser::Parser.new([
+            ArgumentParser::Schema::Rule.new(:required, :env, {pattern: {"d" => "dev", "s" => "staging"}})
+          ])
+
+          argv = %w[d]
+          expect(parser.parse!(argv)).to eq(env: "dev")
+
+          argv = %w[s]
+          expect(parser.parse!(argv)).to eq(env: "staging")
+
+          argv = %w[x]
+          expect { parser.parse!(argv) }.to raise_error(ArgumentParser::InvalidArgument, /invalid argument: x/i)
+        end
+      end
+    end
+
     it "validates each item in rest with pattern" do
       parser = ArgumentParser::Parser.new([
         ArgumentParser::Schema::Rule.new(:rest, :stages, {pattern: ->(v) { %w[dev staging prod].include?(v) }})

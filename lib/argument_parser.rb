@@ -46,10 +46,13 @@ module ArgumentParser
     private
 
     def validate_pattern!(arg, options)
-      coerced_arg = coerce!(arg, options)
-      return coerced_arg unless options[:pattern]
+      coerced_arg = coerce!(arg, options[:type])
+      pattern = options[:pattern]
+      return coerced_arg unless pattern
       return coerced_arg unless arg
-      return coerced_arg if options[:pattern] === coerced_arg
+      return coerced_arg if pattern === coerced_arg
+      return pattern[coerced_arg] if pattern.respond_to?(:key?) && pattern.key?(coerced_arg)
+      return coerced_arg if pattern.respond_to?(:include?) && pattern.include?(coerced_arg)
 
       raise InvalidArgument, "invalid argument: #{arg}"
     end
@@ -64,18 +67,18 @@ module ArgumentParser
       end
     end
 
-    def coerce!(arg, options)
+    def coerce!(arg, type)
       return arg unless arg
-      return arg unless options[:type]
+      return arg unless type
 
-      if options[:type] == Integer
+      if type == Integer
         Integer(arg)
-      elsif options[:type] == Float
+      elsif type == Float
         Float(arg)
-      elsif options[:type] == String
+      elsif type == String
         arg
       else
-        raise SchemaError, "type not supported: #{options[:type]}"
+        raise SchemaError, "type not supported: #{type}"
       end
     rescue ArgumentError
       raise InvalidArgument, "invalid argument: #{arg}"
