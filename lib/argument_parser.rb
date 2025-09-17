@@ -7,8 +7,9 @@ module ArgumentParser
 
   Error           = Class.new(StandardError)
   SchemaError     = Class.new(Error)
-  MissingArgument = Class.new(Error)
-  InvalidArgument = Class.new(Error)
+  ParseError      = Class.new(Error)
+  MissingArgument = Class.new(ParseError)
+  InvalidArgument = Class.new(ParseError)
 
   class Parser < Data.define(:schema)
     def parse!(argv = ARGV)
