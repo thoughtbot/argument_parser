@@ -19,18 +19,19 @@ module ArgumentParser
         in :required
           arg = argv[i]
           raise MissingArgument, "missing required argument: #{rule.name}" if arg.nil?
-          arg = validate!(arg, rule.options)
+          arg = validate_pattern!(arg, rule.options)
 
           result[rule.name] = arg
           i += 1
         in :optional
-          arg = validate!(argv[i], rule.options)
+          arg = validate_pattern!(argv[i], rule.options)
 
           result[rule.name] = arg || rule.options[:default]
           i += 1 if arg
         in :rest
           rest_args = argv.dup[i..] || []
-          rest_args.map! { |it| validate!(it, rule.options) }
+          validate_size(rest_args, rule.options)
+          rest_args.map! { |it| validate_pattern!(it, rule.options) }
 
           result[rule.name] = rest_args
           i = argv.size
@@ -44,13 +45,23 @@ module ArgumentParser
 
     private
 
-    def validate!(arg, options)
+    def validate_pattern!(arg, options)
       coerced_arg = coerce!(arg, options)
       return coerced_arg unless options[:pattern]
       return coerced_arg unless arg
       return coerced_arg if options[:pattern] === coerced_arg
 
       raise InvalidArgument, "invalid argument: #{arg}"
+    end
+
+    def validate_size(args, options)
+      if (min = options[:min])
+        raise InvalidArgument, "expected at least #{min} argument(s)" if args.size < min
+      end
+
+      if (max = options[:max])
+        raise InvalidArgument, "expected at most #{max} argument(s)" if args.size > max
+      end
     end
 
     def coerce!(arg, options)

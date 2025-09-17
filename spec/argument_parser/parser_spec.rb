@@ -135,6 +135,28 @@ RSpec.describe ArgumentParser::Parser do
     end
   end
 
+  describe "rest options" do
+    it "accepts a min option" do
+      parser = ArgumentParser::Parser.new([
+        ArgumentParser::Schema::Rule.new(:rest, :files, {min: 1})
+      ])
+
+      argv = []
+
+      expect { parser.parse!(argv) }.to raise_error(ArgumentParser::InvalidArgument, /expected at least 1 argument/)
+    end
+
+    it "accepts a max option" do
+      parser = ArgumentParser::Parser.new([
+        ArgumentParser::Schema::Rule.new(:rest, :files, {max: 2})
+      ])
+
+      argv = %w[file1 file2 file3]
+
+      expect { parser.parse!(argv) }.to raise_error(ArgumentParser::InvalidArgument, /expected at most 2 argument\(s\)/)
+    end
+  end
+
   it "returns a hash result" do
     parser = ArgumentParser::Parser.new([
       ArgumentParser::Schema::Rule.new(:required, :cmd, {}),
