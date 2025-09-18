@@ -12,6 +12,28 @@ module ArgumentParser
   InvalidArgument = Class.new(ParseError)
 
   class Parser < Data.define(:schema)
+    def usage(program_name = nil)
+      parts = []
+      parts << program_name if program_name
+
+      parts += schema.map do |rule|
+        case rule
+        in kind: :required
+          "<#{rule.name.to_s.upcase}>"
+        in kind: :optional
+          "[#{rule.name.to_s.upcase}]"
+        in kind: :rest, options:
+          if options[:min].to_i.positive?
+            "<#{rule.name.to_s.upcase}...>"
+          else
+            "[#{rule.name.to_s.upcase}...]"
+          end
+        end
+      end
+
+      parts.join(" ")
+    end
+
     def parse!(argv = ARGV)
       i = 0
 
@@ -127,5 +149,5 @@ module ArgumentParser
   end
 
   def schema = Schema::RequiredStage.new([])
-  def build(&block) = Schema::Builder.new.instance_eval(&block).build
+  def build(&block) = Schema::Builder.new.tap { |it| it.instance_eval(&block) }.build
 end

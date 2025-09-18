@@ -211,13 +211,17 @@ positional arguments and `OptionParser` for options:
 require 'optparse'
 require 'argument_parser'
 
-# Simulated ARGV
-argv = ["-v", "--port", "3000", "start", "api"]
+# Define the argument parser first
+arg_parser = ArgumentParser.build do
+  required :command, pattern: %w[start stop restart status]
+  optional :service, default: "web"
+end
 
 # Parse options with OptionParser
 options = {}
-OptionParser.new do |opts|
-  opts.banner = "Usage: myapp [options] <command> [service]"
+option_parser = OptionParser.new do |opts|
+  # Use ArgumentParser to generate the usage string
+  opts.banner = "Usage: #{arg_parser.usage("my-cli")} [OPTIONS]"
 
   opts.on("-v", "--verbose", "Run verbosely") do |v|
     options[:verbose] = v
@@ -226,22 +230,73 @@ OptionParser.new do |opts|
   opts.on("-p", "--port PORT", Integer, "Port number") do |port|
     options[:port] = port
   end
-end.parse!(argv)
 
-# Parse arguments with ArgumentParser
-arg_parser = ArgumentParser.build do
-  required :command, pattern: %w[start stop restart status]
-  optional :service, default: "web"
+  opts.on("-h", "--help", "Show this help message") do
+    puts opts
+    exit
+  end
 end
 
-args = arg_parser.parse!(argv)
+# Handle help flag or parse errors
+begin
+  option_parser.parse!(ARGV)
+  args = arg_parser.parse!(ARGV)
 
-# Now you have both:
-# options => { verbose: true, port: 3000 }
-# args => { command: "start", service: "api" }
-
-puts "#{options[:verbose] ? 'Verbosely' : 'Quietly'} #{args[:command]}ing #{args[:service]} on port #{options[:port] || 8080}"
+  # Now you have both:
+  # options => { verbose: true, port: 3000 }
+  # args => { command: "start", service: "api" }
+  puts "#{options[:verbose] ? 'Verbosely' : 'Quietly'} #{args[:command]}ing #{args[:service]} on port #{options[:port] || 8080}"
+rescue OptionParser::ParseError, ArgumentParser::ParseError => e
+  puts "Error: #{e.message}"
+  # The help output would look like:
+  # Usage: my-cli <COMMAND> [SERVICE] [OPTIONS]
+  #     -v, --verbose                    Run verbosely
+  #     -p, --port PORT                  Port number
+  #     -h, --help                       Show this help message
+  puts option_parser
+  exit 1
+end
 ```
+
+## Usage Strings
+
+`ArgumentParser` can generate standard CLI usage strings that show the expected syntax:
+
+```ruby
+parser = ArgumentParser.build do
+  required :source
+  required :dest
+  optional :format
+  rest :files, min: 1
+end
+
+puts parser.usage("cp")
+# => "cp <SOURCE> <DEST> [FORMAT] <FILES...>"
+
+# Different argument combinations:
+parser = ArgumentParser.build do
+  required :command
+  optional :env
+end
+
+puts parser.usage("deploy")
+# => "deploy <COMMAND> [ENV]"
+
+# Optional rest arguments (no minimum):
+parser = ArgumentParser.build do
+  required :action
+  rest :targets  # no min: specified
+end
+
+puts parser.usage("docker")
+# => "docker <ACTION> [TARGETS...]"
+```
+
+The usage string follows standard CLI conventions:
+- Required arguments: `<ARG>`
+- Optional arguments: `[ARG]`
+- Required rest arguments: `<ARG...>` (when `min:` is > 0)
+- Optional rest arguments: `[ARG...]` (when no `min:` or `min: 0`)
 
 ## Error Handling
 
