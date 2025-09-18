@@ -172,8 +172,10 @@ RSpec.describe ArgumentParser::Parser do
         ArgumentParser::Schema::Rule.new(:rest, :files, {min: 1})
       ])
 
-      argv = []
+      argv = %w[file1 file2]
+      expect(parser.parse!(argv)).to eq(files: %w[file1 file2])
 
+      argv = []
       expect { parser.parse!(argv) }.to raise_error(ArgumentParser::InvalidArgument, /expected at least 1 argument/)
     end
 
@@ -182,8 +184,10 @@ RSpec.describe ArgumentParser::Parser do
         ArgumentParser::Schema::Rule.new(:rest, :files, {max: 2})
       ])
 
-      argv = %w[file1 file2 file3]
+      argv = %w[file1 file2]
+      expect(parser.parse!(argv)).to eq(files: %w[file1 file2])
 
+      argv = %w[file1 file2 file3]
       expect { parser.parse!(argv) }.to raise_error(ArgumentParser::InvalidArgument, /expected at most 2 argument\(s\)/)
     end
   end
